@@ -44,11 +44,17 @@ public class Program
 
         //Test cases for SerializeString
         Console.WriteLine("\nTesting SerializeString...");
-        TestSerialize("", "");
-        TestSerialize("Hello, World!", "Hello, World!");
-        TestSerialize("123", "123");
-        TestSerialize("true", "true");
-        TestSerialize("null", "null");
-        TestSerialize("Special characters: !@#$%^&*()", "Special characters: !@#$%^&*()");
+        TestSerialize("", "\"\"");
+        TestSerialize("123", "\"123\"");
+        TestSerialize("Hello, World!", "\"Hello, World!\"");
+        TestSerialize("Special characters: !@#$%^&*()", "\"Special characters: !@#$%^&*()\"");
+        TestSerialize("He said \"Hello, World!\"", "\"He said \\\"Hello, World!\\\"\""); //quote
+        TestSerialize("This is a backslash: \\", "\"This is a backslash: \\\\\""); //backslash
+        TestSerialize("This is a newline:\n", "\"This is a newline:\\n\""); //newline
+        TestSerialize("This is a tab:\t", "\"This is a tab:\\t\""); //tab
+        TestSerialize("This is a carriage return:\r", "\"This is a carriage return:\\r\""); //carriage return
+        TestSerialize("This is a form feed:\f", "\"This is a form feed:\\f\""); //form feed
+        TestSerialize("This is a backspace:\b", "\"This is a backspace:\\b\""); //backspace
+        TestSerialize("Control character: \u0001", "\"Control character: \\u0001\""); //control character
     }
 }
