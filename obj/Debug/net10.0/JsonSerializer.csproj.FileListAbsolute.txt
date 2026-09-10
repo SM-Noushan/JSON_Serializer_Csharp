@@ -1,0 +1,14 @@
+D:\MyCourses\Backend with AsthaIT\Assignments\A03\JsonSerializer\bin\Debug\net10.0\JsonSerializer.exe
+D:\MyCourses\Backend with AsthaIT\Assignments\A03\JsonSerializer\bin\Debug\net10.0\JsonSerializer.deps.json
+D:\MyCourses\Backend with AsthaIT\Assignments\A03\JsonSerializer\bin\Debug\net10.0\JsonSerializer.runtimeconfig.json
+D:\MyCourses\Backend with AsthaIT\Assignments\A03\JsonSerializer\bin\Debug\net10.0\JsonSerializer.dll
+D:\MyCourses\Backend with AsthaIT\Assignments\A03\JsonSerializer\bin\Debug\net10.0\JsonSerializer.pdb
+D:\MyCourses\Backend with AsthaIT\Assignments\A03\JsonSerializer\obj\Debug\net10.0\JsonSerializer.GeneratedMSBuildEditorConfig.editorconfig
+D:\MyCourses\Backend with AsthaIT\Assignments\A03\JsonSerializer\obj\Debug\net10.0\JsonSerializer.AssemblyInfoInputs.cache
+D:\MyCourses\Backend with AsthaIT\Assignments\A03\JsonSerializer\obj\Debug\net10.0\JsonSerializer.AssemblyInfo.cs
+D:\MyCourses\Backend with AsthaIT\Assignments\A03\JsonSerializer\obj\Debug\net10.0\JsonSerializer.csproj.CoreCompileInputs.cache
+D:\MyCourses\Backend with AsthaIT\Assignments\A03\JsonSerializer\obj\Debug\net10.0\JsonSerializer.dll
+D:\MyCourses\Backend with AsthaIT\Assignments\A03\JsonSerializer\obj\Debug\net10.0\refint\JsonSerializer.dll
+D:\MyCourses\Backend with AsthaIT\Assignments\A03\JsonSerializer\obj\Debug\net10.0\JsonSerializer.pdb
+D:\MyCourses\Backend with AsthaIT\Assignments\A03\JsonSerializer\obj\Debug\net10.0\JsonSerializer.genruntimeconfig.cache
+D:\MyCourses\Backend with AsthaIT\Assignments\A03\JsonSerializer\obj\Debug\net10.0\ref\JsonSerializer.dll
