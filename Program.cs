@@ -181,22 +181,104 @@ public class Program
         // Console.WriteLine(user.Name);
         // Console.WriteLine(user.IsActive);
 
-        var json =
+        // var json =
+        //     """
+        //     {
+        //         "Id": 1,
+        //         "Name": "John",
+        //         "IsActive": true,
+        //         "Address": {
+        //             "City": "Dhaka",
+        //             "Country": "Bangladesh"
+        //         }
+        //     }
+        //     """;
+
+        // var user = Json.Deserialize<User>(json);
+
+        // Console.WriteLine(user!.Address.City);
+        // Console.WriteLine(user.Address.Country);
+
+        //Testing collections
+        // var numbers =Json.Deserialize<List<int>>(
+        // "[1,2,3]");
+
+        // foreach (var number in numbers!)
+        // {
+        //     Console.WriteLine(number);
+        // }
+        // var users =Json.Deserialize<List<User>>(
+        // """
+        //         [
+        //             {
+        //                 "Id": 1,
+        //                 "Name": "John",
+        //                 "IsActive": true
+        //             },
+        //             {
+        //                 "Id": 2,
+        //                 "Name": "Jane",
+        //                 "IsActive": false
+        //             }
+        //         ]
+        //     """);
+
+        // foreach (var user in users!)
+        // {
+        //     Console.WriteLine(user.Name);
+        // }
+
+        //Test dictionary deserialization 
+        var data = Json.Deserialize<Dictionary<string, object>>(
             """
             {
-                "Id": 1,
-                "Name": "John",
-                "IsActive": true,
-                "Address": {
-                    "City": "Dhaka",
-                    "Country": "Bangladesh"
-                }
+                "name": "John",
+                "age": 25,
+                "active": true
             }
-            """;
+            """);
+        Console.WriteLine(data["name"]);
+        Console.WriteLine(data["age"]);
+        Console.WriteLine(data["active"]);
 
-        var user = Json.Deserialize<User>(json);
+        //Test special types deserialization
 
-        Console.WriteLine(user!.Address.City);
-        Console.WriteLine(user.Address.Country);
+        var date = Json.Deserialize<DateTime>("\"2026-09-11T12:00:00.0000000Z\"");
+        var id = Json.Deserialize<Guid>("\"550e8400-e29b-41d4-a716-446655440000\"");
+        var status = Json.Deserialize<Status>("\"Active\"");
+        Console.WriteLine($"Date: {date}, \nID: {id}, \nStatus: {status}");
+
+        var user = Json.Deserialize<User>(
+            """
+            {
+                "id": 1,
+                "name": "John",
+                "isactive": true
+            }
+            """,
+        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        Console.WriteLine($"User: {user.Id}, {user.Name}, {user.IsActive}");
+        // Console.WriteLine($"User: {user.id}, {user.name}, {user.isactive}");
+
+        var original = new User
+        {
+            Id = 1,
+            Name = "John",
+            IsActive = true,
+            Address = new Address
+            {
+                City = "Dhaka",
+                Country = "Bangladesh"
+            }
+        };
+
+        var json = Json.Serialize(original);
+        var copy = Json.Deserialize<User>(json);
+
+        Console.WriteLine(json);
+        Console.WriteLine(copy!.Name);
+        Console.WriteLine(copy.Address.City);
     }
+    public enum Status { Active, Inactive }
+
 }

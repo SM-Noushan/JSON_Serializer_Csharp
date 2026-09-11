@@ -197,6 +197,7 @@ internal static class JsonValueConverter
             return null;
         }
 
+        if (targetType == typeof(object)) return ConvertToUntyped(node, options);
         if (targetType == typeof(string)) return RequireString(node);
         if (targetType == typeof(bool)) return RequireBoolean(node);
         if (targetType == typeof(char)) return RequireString(node) switch
@@ -204,8 +205,18 @@ internal static class JsonValueConverter
             { Length: 1 } text => text[0],
             _ => throw new JsonException("A JSON string must contain exactly one character when deserializing char.")
         };
+        if (targetType.IsEnum) return ConvertEnum(node, targetType);
+        if (targetType == typeof(DateTime)) return ParseDateTime(node);
+        if (targetType == typeof(DateTimeOffset)) return ParseDateTimeOffset(node);
+        if (targetType == typeof(Guid)) return ParseGuid(node);
 
         if (IsNumeric(targetType)) return ConvertNumber(node, targetType);
+
+        if (TryGetDictionaryShape(targetType, out var keyType, out var valueType))
+            return ConvertDictionary(node, targetType, keyType!, valueType!, options);
+
+        if (TryGetCollectionElementType(targetType, out var elementType))
+            return ConvertCollection(node, targetType, elementType!, options);
 
         if (node is not JsonObjectValue objectNode)
             throw new JsonException($"Cannot deserialize JSON {Describe(node)} into '{targetType.FullName}'.");
@@ -258,6 +269,80 @@ internal static class JsonValueConverter
         return instance;
     }
 
+    private static object ConvertCollection(JsonValue node, Type targetType, Type elementType, JsonSerializerOptions options)
+    {
+        if (node is not JsonArrayValue array)
+            throw new JsonException($"Expected a JSON array for '{targetType.FullName}'.");
+
+        var values = array.Items.Select(item => Convert(item, elementType, options)).ToList();
+
+        if (targetType.IsArray)
+        {
+            var result = Array.CreateInstance(elementType, values.Count);
+            for (var i = 0; i < values.Count; i++) result.SetValue(values[i], i);
+            return result;
+        }
+
+        if (targetType.IsInterface || targetType.IsAbstract)
+        {
+            if (targetType.IsAssignableFrom(typeof(List<>).MakeGenericType(elementType)))
+                return CreateList(elementType, values);
+            throw new JsonException($"Collection type '{targetType.FullName}' is not supported.");
+        }
+
+        if (targetType.IsGenericType && targetType.GetGenericTypeDefinition() == typeof(List<>))
+            return CreateList(elementType, values);
+
+        var collection = Activator.CreateInstance(targetType);
+        if (collection is null) throw new JsonException($"Could not create collection '{targetType.FullName}'.");
+        var add = targetType.GetMethod("Add", [elementType]);
+        if (add is null) throw new JsonException($"Collection type '{targetType.FullName}' must expose an Add method.");
+        foreach (var value in values) add.Invoke(collection, [value]);
+        return collection;
+    }
+
+    private static object CreateList(Type elementType, List<object?> values)
+    {
+        var listType = typeof(List<>).MakeGenericType(elementType);
+        var list = Activator.CreateInstance(listType)!;
+        var add = listType.GetMethod("Add", [elementType])!;
+        foreach (var value in values) add.Invoke(list, [value]);
+        return list;
+    }
+
+    private static object ConvertDictionary(JsonValue node, Type targetType, Type keyType, Type valueType, JsonSerializerOptions options)
+    {
+        if (keyType != typeof(string))
+            throw new JsonException("Only dictionaries with string keys can be represented as JSON objects.");
+        if (node is not JsonObjectValue objectNode)
+            throw new JsonException($"Expected a JSON object for dictionary type '{targetType.FullName}'.");
+
+        var concreteType = targetType;
+        if (targetType.IsInterface || targetType.IsAbstract)
+            concreteType = typeof(Dictionary<,>).MakeGenericType(keyType, valueType);
+
+        var dictionary = Activator.CreateInstance(concreteType) as IDictionary;
+        if (dictionary is null)
+            throw new JsonException($"Dictionary type '{targetType.FullName}' could not be created.");
+
+        foreach (var (key, jsonValue) in objectNode.Properties)
+            dictionary.Add(key, Convert(jsonValue, valueType, options));
+        return dictionary;
+    }
+
+    private static object? ConvertToUntyped(JsonValue node, JsonSerializerOptions options) => node switch
+    {
+        JsonNullValue => null,
+        JsonStringValue s => s.Value,
+        JsonBooleanValue b => b.Value,
+        JsonNumberValue n when n.IsInteger && n.TryGetInt64(out var integer) => integer,
+        JsonNumberValue n when decimal.TryParse(n.RawText, NumberStyles.Float, CultureInfo.InvariantCulture, out var decimalValue) => decimalValue,
+        JsonNumberValue n => throw new JsonException($"Invalid number '{n.RawText}'."),
+        JsonArrayValue a => a.Items.Select(item => ConvertToUntyped(item, options)).ToList(),
+        JsonObjectValue o => o.Properties.ToDictionary(p => p.Key, p => ConvertToUntyped(p.Value, options), StringComparer.Ordinal),
+        _ => throw new JsonException("Unsupported JSON value.")
+    };
+
     private static object ConvertNumber(JsonValue node, Type targetType)
     {
         if (node is not JsonNumberValue number)
@@ -285,6 +370,37 @@ internal static class JsonValueConverter
         }
     }
 
+    private static object ConvertEnum(JsonValue node, Type targetType)
+    {
+        var text = RequireString(node);
+        if (!Enum.TryParse(targetType, text, ignoreCase: true, out var result))
+            throw new JsonException($"'{text}' is not a valid {targetType.Name} value.");
+        return result!;
+    }
+
+    private static DateTime ParseDateTime(JsonValue node)
+    {
+        var text = RequireString(node);
+        if (!DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var result))
+            throw new JsonException($"'{text}' is not a valid ISO-8601 DateTime.");
+        return result;
+    }
+
+    private static DateTimeOffset ParseDateTimeOffset(JsonValue node)
+    {
+        var text = RequireString(node);
+        if (!DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.None, out var result))
+            throw new JsonException($"'{text}' is not a valid ISO-8601 DateTimeOffset.");
+        return result;
+    }
+
+    private static Guid ParseGuid(JsonValue node)
+    {
+        var text = RequireString(node);
+        if (!Guid.TryParse(text, out var result)) throw new JsonException($"'{text}' is not a valid Guid.");
+        return result;
+    }
+
     private static string RequireString(JsonValue node) =>
         node is JsonStringValue value
             ? value.Value
@@ -304,6 +420,53 @@ internal static class JsonValueConverter
         JsonNullValue => "null",
         _ => "value"
     };
+
+    private static bool TryGetCollectionElementType(Type type, out Type? elementType)
+    {
+        if (type.IsArray)
+        {
+            elementType = type.GetElementType();
+            return elementType is not null;
+        }
+
+        if (type.IsGenericType && (type.GetGenericTypeDefinition() == typeof(List<>) ||
+                                   type.GetGenericTypeDefinition() == typeof(IEnumerable<>)))
+        {
+            elementType = type.GetGenericArguments()[0];
+            return true;
+        }
+
+        var enumerable = type.GetInterfaces()
+            .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
+        if (enumerable is not null)
+        {
+            elementType = enumerable.GetGenericArguments()[0];
+            return true;
+        }
+
+        elementType = null;
+        return false;
+    }
+
+    private static bool TryGetDictionaryShape(Type type, out Type? keyType, out Type? valueType)
+    {
+        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Dictionary<,>))
+        {
+            var args = type.GetGenericArguments();
+            keyType = args[0]; valueType = args[1]; return true;
+        }
+
+        var dictionary = type.GetInterfaces()
+            .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IDictionary<,>));
+        if (dictionary is not null)
+        {
+            var args = dictionary.GetGenericArguments();
+            keyType = args[0]; valueType = args[1]; return true;
+        }
+
+        keyType = valueType = null;
+        return false;
+    }
 
     public static bool IsNumeric(Type type)
         => Type.GetTypeCode(type) is TypeCode.Byte or TypeCode.SByte or TypeCode.Int16 or TypeCode.UInt16 or TypeCode.Int32 or TypeCode.UInt32 or TypeCode.Int64 or TypeCode.UInt64 or TypeCode.Single or TypeCode.Double or TypeCode.Decimal;
