@@ -34,17 +34,18 @@ public class Program
         }
         // Console.WriteLine($"{passed}/{tests.Length} tests passed.");
 
-        var parser = new JsonParser("true");
-        var result1 = parser.Parse();
-        Console.WriteLine(result1.GetType().Name);
 
-
-        var jsonValues = new[] { "null", "true", "false", "\"Hello\"", "123", "-45.67" };
+        // var jsonValues = new[] { "null", "true", "false", "\"Hello\"", "123", "-45.67" };
+        // var jsonValues = new[] { "null", "true", "false", "123", "-45.67" };
+        var jsonValues = new[] { "\"Hello\"", "\"Hello \\\"John\\\"\"", "\"C:\\\\Test\"", "\"Line1\\nLine2\"", "\"\\u0041\"" };
         foreach (var json in jsonValues)
         {
-            var result2 = new JsonParser(json).Parse();
-            Console.WriteLine(
-                $"{json} -> {result2.GetType().Name}");
+            var result = new JsonParser(json).Parse();
+
+            if (result is JsonStringValue stringValue)
+                Console.WriteLine(stringValue.Value);
+
+            // Console.WriteLine($"{json} -> {result.GetType().Name}");
         }
 
     }

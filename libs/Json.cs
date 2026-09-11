@@ -55,7 +55,7 @@ public static class Json
         {
             _builder.Append('{');
             _depth++;
-            var properties = value.GetType().GetProperties();
+            var properties = ReflectionMetadataCache.GetSerializableProperties(value.GetType());
 
             for (int i = 0; i < properties.Length; i++)
             {
@@ -63,7 +63,7 @@ public static class Json
                 WriteNewLineAndIndentIfNeeded();
                 WriteString(properties[i].Name);
                 _builder.Append(_options.WriteIndented ? ": " : ":");
-                WriteValue(properties[i].GetValue(value));
+                WriteValue(properties[i].Property.GetValue(value));
             }
 
             _depth--;
