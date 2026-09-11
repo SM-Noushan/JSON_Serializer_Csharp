@@ -13,11 +13,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\MyCourses\\Backend with AsthaIT\\Assignments\\A03\\JsonSerializer\\JsonSerializer.csproj",
+      "projectUniqueName": "d:\\MyCourses\\Backend with AsthaIT\\Assignments\\A03\\JsonSerializer\\JsonSerializer.csproj",
       "projectName": "JsonSerializer",
-      "projectPath": "D:\\MyCourses\\Backend with AsthaIT\\Assignments\\A03\\JsonSerializer\\JsonSerializer.csproj",
+      "projectPath": "d:\\MyCourses\\Backend with AsthaIT\\Assignments\\A03\\JsonSerializer\\JsonSerializer.csproj",
       "packagesPath": "C:\\Users\\smnou\\.nuget\\packages\\",
-      "outputPath": "D:\\MyCourses\\Backend with AsthaIT\\Assignments\\A03\\JsonSerializer\\obj\\",
+      "outputPath": "d:\\MyCourses\\Backend with AsthaIT\\Assignments\\A03\\JsonSerializer\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\smnou\\AppData\\Roaming\\NuGet\\NuGet.Config"
