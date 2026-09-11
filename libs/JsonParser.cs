@@ -1,6 +1,6 @@
 using System.Text;
-using System.Globalization;
 using JSONSerializer.libs;
+using System.Globalization;
 
 namespace JsonSerializer.libs;
 
@@ -28,25 +28,74 @@ internal sealed class JsonParser
 
     private JsonValue ParseValue()
     {
-        // if (End) Throw("Unexpected end of input while reading a JSON value.");
+        if (End) Throw("Unexpected end of input while reading a JSON value.");
 
         return Current switch
         {
-            // '{' => ParseObject(),
-            // '[' => ParseArray(),
+            '{' => ParseObject(),
+            '[' => ParseArray(),
             '"' => new JsonStringValue(ParseString()),
-            't' => ParseLiteral("true", new JsonNumberValue.JsonBooleanValue(true)),
-            'f' => ParseLiteral("false", new JsonNumberValue.JsonBooleanValue(false)),
-            'n' => ParseLiteral("null", JsonNumberValue.JsonNullValue.Instance),
+            't' => ParseLiteral("true", new JsonBooleanValue(true)),
+            'f' => ParseLiteral("false", new JsonBooleanValue(false)),
+            'n' => ParseLiteral("null", JsonNullValue.Instance),
             '-' or >= '0' and <= '9' => ParseNumber(),
             _ => throw Error("Unexpected token '{0}'.", Current)
         };
     }
 
+    private JsonObjectValue ParseObject()
+    {
+        Expect('{');
+        SkipWhitespace();
+        var result = new JsonObjectValue();
+
+        if (TryConsume('}')) return result;
+
+        while (true)
+        {
+            SkipWhitespace();
+            if (End || Current != '"')
+                Throw("Expected a string property name.");
+
+            var name = ParseString();
+            SkipWhitespace();
+            Expect(':');
+            SkipWhitespace();
+
+            if (!result.Properties.TryAdd(name, ParseValue()))
+                Throw("Duplicate property '{0}'.", name);
+
+            SkipWhitespace();
+            if (TryConsume('}')) return result;
+            Expect(',');
+            SkipWhitespace();
+        }
+    }
+
+    private JsonArrayValue ParseArray()
+    {
+        Expect('[');
+        SkipWhitespace();
+        var result = new JsonArrayValue();
+
+        if (TryConsume(']')) return result;
+
+        while (true)
+        {
+            SkipWhitespace();
+            result.Items.Add(ParseValue());
+            SkipWhitespace();
+
+            if (TryConsume(']')) return result;
+            Expect(',');
+            SkipWhitespace();
+        }
+    }
+
     private JsonValue ParseLiteral(string literal, JsonValue value)
     {
         // if (_index + literal.Length > _json.Length ||
-        //     !string.Equals(_json.AsSpan(_index, literal.Length), literal.AsSpan(), StringComparison.Ordinal))
+        // !string.Equals(_json.AsSpan(_index, literal.Length), literal.AsSpan(), StringComparison.Ordinal))
         if (_index + literal.Length > _json.Length || !_json.AsSpan(_index, literal.Length).SequenceEqual(literal.AsSpan()))
             Throw("Invalid literal. Expected '{0}'.", literal);
 
