@@ -207,7 +207,55 @@ internal static class JsonValueConverter
 
         if (IsNumeric(targetType)) return ConvertNumber(node, targetType);
 
-        return "temporary";
+        if (node is not JsonObjectValue objectNode)
+            throw new JsonException($"Cannot deserialize JSON {Describe(node)} into '{targetType.FullName}'.");
+
+        return ConvertObject(objectNode, targetType, options);
+    }
+
+    private static object ConvertObject(JsonObjectValue node, Type targetType, JsonSerializerOptions options)
+    {
+        if (targetType.IsAbstract || targetType.IsInterface)
+            throw new JsonException($"Cannot create an instance of '{targetType.FullName}'. A concrete target type is required.");
+
+        object instance;
+        try
+        {
+            instance = Activator.CreateInstance(targetType)
+                ?? throw new JsonException($"Could not create an instance of '{targetType.FullName}'.");
+        }
+        catch (JsonException) { throw; }
+        catch (Exception ex)
+        {
+            throw new JsonException($"Could not create '{targetType.FullName}'. It must have a public parameterless constructor.", ex);
+        }
+
+        var properties = ReflectionMetadataCache.GetDeserializableProperties(targetType);
+        var propertyMap = properties.ToDictionary(p => p.Name,
+            p => p,
+            options.PropertyNameCaseInsensitive ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+
+        foreach (var (name, value) in node.Properties)
+        {
+            if (!propertyMap.TryGetValue(name, out var property))
+                continue;
+
+            try
+            {
+                var converted = Convert(value, property.PropertyType, options);
+                property.Property.SetValue(instance, converted);
+            }
+            catch (JsonException ex)
+            {
+                throw new JsonException($"Failed to deserialize property '{name}' of '{targetType.FullName}': {ex.Message}", ex);
+            }
+            catch (Exception ex)
+            {
+                throw new JsonException($"Failed to assign property '{name}' of '{targetType.FullName}'.", ex);
+            }
+        }
+
+        return instance;
     }
 
     private static object ConvertNumber(JsonValue node, Type targetType)
@@ -245,6 +293,17 @@ internal static class JsonValueConverter
     private static bool RequireBoolean(JsonValue node) => node is JsonBooleanValue value
        ? value.Value
        : throw new JsonException("Expected a JSON boolean.");
+
+    private static string Describe(JsonValue node) => node switch
+    {
+        JsonObjectValue => "object",
+        JsonArrayValue => "array",
+        JsonStringValue => "string",
+        JsonNumberValue => "number",
+        JsonBooleanValue => "boolean",
+        JsonNullValue => "null",
+        _ => "value"
+    };
 
     public static bool IsNumeric(Type type)
         => Type.GetTypeCode(type) is TypeCode.Byte or TypeCode.SByte or TypeCode.Int16 or TypeCode.UInt16 or TypeCode.Int32 or TypeCode.UInt32 or TypeCode.Int64 or TypeCode.UInt64 or TypeCode.Single or TypeCode.Double or TypeCode.Decimal;

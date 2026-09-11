@@ -1,6 +1,8 @@
 ﻿using JSONSerializer.libs;
 using JSONSerializer.tests;
 
+namespace JSONSerializer;
+
 public class Program
 {
     public static void Main(string[] args)
@@ -79,21 +81,21 @@ public class Program
         // }
 
         // test cases for invalid JSON
-        var invalidJson = new[]
-            {
-                "",
-                "{",
-                "[",
-                "{\"Name\"}",
-                "{\"Name\":}",
-                "[1,]",
-                "{\"a\":1 \"b\":2}",
-                "{\"a\":1,}",
-                "tru",
-                "nul",
-                "\"unterminated",
-                "{\"a\":01}"
-            };
+        // var invalidJson = new[]
+        //     {
+        //         "",
+        //         "{",
+        //         "[",
+        //         "{\"Name\"}",
+        //         "{\"Name\":}",
+        //         "[1,]",
+        //         "{\"a\":1 \"b\":2}",
+        //         "{\"a\":1,}",
+        //         "tru",
+        //         "nul",
+        //         "\"unterminated",
+        //         "{\"a\":01}"
+        //     };
 
         // foreach (var json in invalidJson)
         // {
@@ -162,5 +164,39 @@ public class Program
         // {
         //     Console.WriteLine($"PASS: {ex.Message}");
         // }
+
+        //deserialize object
+        // var json =
+        //     """
+        //     {
+        //         "Id": 1,
+        //         "Name": "John",
+        //         "IsActive": true
+        //     }
+        //     """;
+
+        // var user = Json.Deserialize<User>(json);
+
+        // Console.WriteLine(user!.Id);
+        // Console.WriteLine(user.Name);
+        // Console.WriteLine(user.IsActive);
+
+        var json =
+            """
+            {
+                "Id": 1,
+                "Name": "John",
+                "IsActive": true,
+                "Address": {
+                    "City": "Dhaka",
+                    "Country": "Bangladesh"
+                }
+            }
+            """;
+
+        var user = Json.Deserialize<User>(json);
+
+        Console.WriteLine(user!.Address.City);
+        Console.WriteLine(user.Address.Country);
     }
 }

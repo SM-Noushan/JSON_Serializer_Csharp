@@ -94,6 +94,13 @@ public sealed class User
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public bool IsActive { get; set; }
+    public Address Address { get; set; } = new();
+}
+
+public sealed class Address
+{
+    public string City { get; set; } = string.Empty;
+    public string Country { get; set; } = string.Empty;
 }
 
 public sealed class Order
