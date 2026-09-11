@@ -1,6 +1,6 @@
-using JsonSerializer.libs;
+using JSONSerializer.libs;
 
-namespace JsonSerializer.tests;
+namespace JSONSerializer.tests;
 
 public static class TestCase
 {

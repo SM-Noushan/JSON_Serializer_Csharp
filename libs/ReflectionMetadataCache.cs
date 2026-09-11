@@ -1,7 +1,7 @@
 using System.Reflection;
 using System.Collections.Concurrent;
 
-namespace JsonSerializer.libs;
+namespace JSONSerializer.libs;
 
 internal sealed class PropertyMetadata
 {

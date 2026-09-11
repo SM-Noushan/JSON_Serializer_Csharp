@@ -1,4 +1,4 @@
-namespace JsonSerializer.libs;
+namespace JSONSerializer.libs;
 
 public sealed class JsonSerializerOptions
 {

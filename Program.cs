@@ -1,7 +1,5 @@
-﻿using JsonSerializer.libs;
-using JSONSerializer.libs;
-using JsonSerializer.tests;
-// using static JsonSerializer.tests.Equal;
+﻿using JSONSerializer.libs;
+using JSONSerializer.tests;
 
 public class Program
 {
@@ -111,23 +109,58 @@ public class Program
         //     }
         // }
         // test cases for valid JSON
-        var validJson = new[]
-            {
-                "0",
-                "-1",
-                "123.456",
-                "1e5",
-                "1.5e-2",
-                "[]",
-                "{}",
-                "[[]]",
-                "{\"nested\":{}}"
-            };
+        // var validJson = new[]
+        //     {
+        //         "0",
+        //         "-1",
+        //         "123.456",
+        //         "1e5",
+        //         "1.5e-2",
+        //         "[]",
+        //         "{}",
+        //         "[[]]",
+        //         "{\"nested\":{}}"
+        //     };
 
-        foreach (var json in validJson)
-        {
-            var result = new JsonParser(json).Parse();
-            Console.WriteLine($"PASS: {json}");
-        }
+        // foreach (var json in validJson)
+        // {
+        //     var result = new JsonParser(json).Parse();
+        //     Console.WriteLine($"PASS: {json}");
+        // }
+
+        //Deserialize
+        // var nullValue = Json.Deserialize<int?>("null");
+        // Console.WriteLine(nullValue is null); //ok
+
+        //passed
+        // try
+        // {
+        //     Json.Deserialize<int>("null");
+        //     Console.WriteLine("FAIL");
+        // }
+        // catch (JsonException ex)
+        // {
+        //     Console.WriteLine($"PASS: {ex.Message}");
+        // }
+
+        // Console.WriteLine(Json.Deserialize<int>("123")); // 123
+        // Console.WriteLine(Json.Deserialize<double>("12.34")); // 12.34
+        // Console.WriteLine(Json.Deserialize<bool>("true")); // True
+        // Console.WriteLine(Json.Deserialize<string>("\"Hello\"")); // Hello
+        // Console.WriteLine(Json.Deserialize<int?>("null") is null); // True
+        // Console.WriteLine(Json.Deserialize<double?>("null") is null); // True
+        // Console.WriteLine(Json.Deserialize<bool?>("null") is null); // True
+        // Console.WriteLine(Json.Deserialize<long>("123456789")); // 123456789
+        // try
+        // {
+        //     // Json.Deserialize<int>("\"hello\"");
+        //     // Json.Deserialize<bool>("true");
+        //     Json.Deserialize<bool>("123");
+        //     Console.WriteLine("FAIL");
+        // }
+        // catch (JsonException ex)
+        // {
+        //     Console.WriteLine($"PASS: {ex.Message}");
+        // }
     }
 }

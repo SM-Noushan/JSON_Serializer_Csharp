@@ -1,8 +1,7 @@
 using System.Text;
-using JSONSerializer.libs;
 using System.Globalization;
 
-namespace JsonSerializer.libs;
+namespace JSONSerializer.libs;
 
 internal sealed class JsonParser
 {

@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace JsonSerializer.libs;
+namespace JSONSerializer.libs;
 
 internal abstract class JsonValue;
 
