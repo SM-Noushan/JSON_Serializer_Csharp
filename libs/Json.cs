@@ -1,6 +1,7 @@
 using System.Text;
 using System.Collections;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 
 namespace JSONSerializer.libs;
 
@@ -36,6 +37,7 @@ internal sealed class JsonWriter
 {
     private readonly StringBuilder _builder = new StringBuilder();
     private readonly JsonSerializerOptions _options;
+    private readonly HashSet<object> _activeReferences = new(ReferenceEqualityComparer.Instance);
     private int _depth;
 
     public JsonWriter(JsonSerializerOptions options)
@@ -60,71 +62,109 @@ internal sealed class JsonWriter
 
         // Dictionaries must be checked before Enumerables because they are also Enumerables.Both must be checked before objects, because they are objects as well.
         if (value is IDictionary dictionary) { WriteDictionary(dictionary); return; }
-        if (value is IEnumerable enumerable) { WriteEnumerable(enumerable); return; }
+        if (value is IEnumerable enumerable) { WriteEnumerable(enumerable, value); return; }
 
         WriteObject(value);
     }
 
     private void WriteObject(object value)
     {
-        _builder.Append('{');
-        _depth++;
-        var properties = ReflectionMetadataCache.GetSerializableProperties(value.GetType());
+        if (!TryEnterReference(value)) return;
 
-        for (int i = 0; i < properties.Length; i++)
+        try
         {
-            if (i > 0) _builder.Append(',');
-            WriteNewLineAndIndentIfNeeded();
-            WriteString(properties[i].Name);
-            _builder.Append(_options.WriteIndented ? ": " : ":");
-            WriteValue(properties[i].Property.GetValue(value));
-        }
+            _builder.Append('{');
+            _depth++;
+            var properties = ReflectionMetadataCache.GetSerializableProperties(value.GetType());
 
-        _depth--;
-        if (properties.Length > 0) WriteNewLineAndIndentIfNeeded();
-        _builder.Append('}');
+            for (int i = 0; i < properties.Length; i++)
+            {
+                if (i > 0) _builder.Append(',');
+                WriteNewLineAndIndentIfNeeded();
+                WriteString(properties[i].Name);
+                _builder.Append(_options.WriteIndented ? ": " : ":");
+                WriteValue(properties[i].Property.GetValue(value));
+            }
+
+            _depth--;
+            if (properties.Length > 0) WriteNewLineAndIndentIfNeeded();
+            _builder.Append('}');
+        }
+        finally
+        {
+            _activeReferences.Remove(value);
+        }
     }
 
-    private void WriteEnumerable(IEnumerable enumerable)
+    private void WriteEnumerable(IEnumerable enumerable, object? reference = null)
     {
-        _builder.Append('[');
-        _depth++;
-        var first = true;
-
-        foreach (var item in enumerable)
+        if (!TryEnterReference(reference)) return;
+        try
         {
-            if (!first) _builder.Append(',');
-            first = false;
-            WriteNewLineAndIndentIfNeeded();
-            WriteValue(item);
-        }
+            _builder.Append('[');
+            _depth++;
+            var first = true;
 
-        _depth--;
-        if (!first) WriteNewLineAndIndentIfNeeded();
-        _builder.Append(']');
+            foreach (var item in enumerable)
+            {
+                if (!first) _builder.Append(',');
+                first = false;
+                WriteNewLineAndIndentIfNeeded();
+                WriteValue(item);
+            }
+
+            _depth--;
+            if (!first) WriteNewLineAndIndentIfNeeded();
+            _builder.Append(']');
+        }
+        finally
+        {
+            _activeReferences.Remove(reference);
+        }
     }
 
     private void WriteDictionary(IDictionary dictionary)
     {
-        _builder.Append('{');
-        _depth++;
-        var first = true;
-
-        foreach (DictionaryEntry entry in dictionary)
+        if (!TryEnterReference(dictionary)) return;
+        try
         {
-            if (entry.Key is not string key)
-                throw new JsonException("Dictionary keys must be strings for JSON object serialization.");
-            if (!first) _builder.Append(',');
-            first = false;
-            WriteNewLineAndIndentIfNeeded();
-            WriteString(key);
-            _builder.Append(_options.WriteIndented ? ": " : ":");
-            WriteValue(entry.Value);
+            _builder.Append('{');
+            _depth++;
+            var first = true;
+
+            foreach (DictionaryEntry entry in dictionary)
+            {
+                if (entry.Key is not string key)
+                    throw new JsonException("Dictionary keys must be strings for JSON object serialization.");
+                if (!first) _builder.Append(',');
+                first = false;
+                WriteNewLineAndIndentIfNeeded();
+                WriteString(key);
+                _builder.Append(_options.WriteIndented ? ": " : ":");
+                WriteValue(entry.Value);
+            }
+
+            _depth--;
+            if (!first) WriteNewLineAndIndentIfNeeded();
+            _builder.Append('}');
+        }
+        finally
+        {
+            _activeReferences.Remove(dictionary);
+        }
+    }
+
+    private bool TryEnterReference(object value)
+    {
+        if (_activeReferences.Add(value)) return true;
+
+        if (_options.CircularReferenceHandling == CircularReferenceHandling.WriteNull)
+        {
+            _builder.Append("null");
+            return false;
         }
 
-        _depth--;
-        if (!first) WriteNewLineAndIndentIfNeeded();
-        _builder.Append('}');
+        throw new JsonException($"Circular reference detected while serializing '{value.GetType().FullName}'.");
     }
 
     private void WriteString(string value)
@@ -470,4 +510,12 @@ internal static class JsonValueConverter
 
     public static bool IsNumeric(Type type)
         => Type.GetTypeCode(type) is TypeCode.Byte or TypeCode.SByte or TypeCode.Int16 or TypeCode.UInt16 or TypeCode.Int32 or TypeCode.UInt32 or TypeCode.Int64 or TypeCode.UInt64 or TypeCode.Single or TypeCode.Double or TypeCode.Decimal;
+}
+
+internal sealed class ReferenceEqualityComparer : IEqualityComparer<object>
+{
+    public static ReferenceEqualityComparer Instance { get; } = new();
+    private ReferenceEqualityComparer() { }
+    public new bool Equals(object? x, object? y) => ReferenceEquals(x, y);
+    public int GetHashCode(object obj) => RuntimeHelpers.GetHashCode(obj);
 }

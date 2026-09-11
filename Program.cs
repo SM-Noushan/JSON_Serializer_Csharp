@@ -46,20 +46,6 @@ public class Program
 
         //Benchmark
         const int iterations = 20_000;
-        var sample = new BenchmarkUser() { Id = 123, Name = "Benchmark User", IsActive = true };
-
-        // Warm-up JIT and populate the metadata cache.
-        _ = Json.Serialize(sample);
-
-        var cached = Benchmark.Measure(iterations, () => Json.Serialize(sample));
-        var uncached = Benchmark.Measure(iterations, () => Benchmark.SerializeWithoutMetadataCache(sample));
-
-        Console.WriteLine("\nCustom JSON serializer reflection benchmark");
-        Console.WriteLine($"Iterations : {iterations:N0}");
-        Console.WriteLine($"Cached     : {cached.TotalMilliseconds:N2} ms ({cached.TotalMilliseconds / iterations * 1_000_000:N0} ns/op)");
-        Console.WriteLine($"Uncached   : {uncached.TotalMilliseconds:N2} ms ({uncached.TotalMilliseconds / iterations * 1_000_000:N0} ns/op)");
-        Console.WriteLine($"Speedup    : {uncached.TotalMilliseconds / cached.TotalMilliseconds:N2}x");
-        Console.WriteLine();
-        Console.WriteLine("Note: results vary by CPU/runtime. Run Release mode and repeat after system warm-up for a meaningful comparison.");
+        Benchmark.Run(iterations);
     }
 }

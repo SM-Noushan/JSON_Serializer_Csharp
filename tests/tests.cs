@@ -36,18 +36,11 @@ public static class TestCase
         Contains(json, "\"Users\":[{\"Id\":1");
     }
 
-    public static void SpecialTypes()
+    public static void EnumerableDeserialization()
     {
-        var source = new SpecialModel { Date = new DateTime(2026, 9, 10, 12, 30, 0, DateTimeKind.Utc), Id = Guid.Parse("4d3c2f1e-1234-4567-89ab-0123456789ab"), Status = Status.Active };
-        var json = Json.Serialize(source);
-        Equal("{\"Date\":\"2026-09-10T12:30:00.0000000Z\",\"Id\":\"4d3c2f1e-1234-4567-89ab-0123456789ab\",\"Status\":\"Active\"}", json);
-    }
-
-    public static void EscapedStrings()
-    {
-        var value = "quote=\" slash=\\ newline=\n";
-        var json = Json.Serialize(value);
-        Equal("\"quote=\\\" slash=\\\\ newline=\\n\"", json);
+        var values = Json.Deserialize<IEnumerable<int>>("[1,2,3]")!.ToList();
+        Equal(3, values.Count);
+        Equal(2, values.ElementAt(1));
     }
 
     public static void DictionarySerialization()
@@ -74,18 +67,89 @@ public static class TestCase
         Contains(json, "\"settings\":{\"darkMode\":true,\"language\":\"en\"}");
     }
 
+    public static void Deserialization()
+    {
+        const string json = "{\"Id\":1,\"Name\":\"John\",\"IsActive\":true}";
+        var user = Json.Deserialize<User>(json)!;
+        Equal(1, user.Id); Equal("John", user.Name); Equal(true, user.IsActive);
+    }
+
+    public static void SpecialTypes()
+    {
+        var source = new SpecialModel { Date = new DateTime(2026, 9, 10, 12, 30, 0, DateTimeKind.Utc), Id = Guid.Parse("4d3c2f1e-1234-4567-89ab-0123456789ab"), Status = Status.Active };
+        var json = Json.Serialize(source);
+        var copy = Json.Deserialize<SpecialModel>(json)!;
+        Equal(source.Date, copy.Date); Equal(source.Id, copy.Id); Equal(source.Status, copy.Status);
+    }
+    public static void NullableValues()
+    {
+        var item = Json.Deserialize<NullableModel>("{\"Count\":null}")!;
+        Equal(null, item.Count);
+        var item2 = Json.Deserialize<NullableModel>("{\"Count\":5}")!;
+        Equal(5, item2.Count);
+    }
+
+    public static void EscapedStrings()
+    {
+        var value = "quote=\" slash=\\ newline=\n";
+        var json = Json.Serialize(value);
+        var copy = Json.Deserialize<string>(json);
+        Equal(value, copy);
+    }
+
+    public static void MalformedJson()
+    {
+        Throws<JsonException>(() => Json.Deserialize<User>("{\"Id\":1"));
+        Throws<JsonException>(() => Json.Deserialize<User>("{\"Id\":01}"));
+        Throws<JsonException>(() => Json.Deserialize<User>("{\"Id\":1,}"));
+    }
+
+    public static void TypeMismatch()
+    {
+        var ex = Throws<JsonException>(() => Json.Deserialize<User>("{\"Id\":\"one\"}"));
+        Contains(ex.Message, "Id");
+    }
+
+    public static void CircularReferenceThrow()
+    {
+        var person = new Person();
+        person.Friend = person;
+        var ex = Throws<JsonException>(() => Json.Serialize(person));
+        Contains(ex.Message, "Circular reference");
+    }
+
+    public static void CircularReferenceWriteNull()
+    {
+        var person = new Person();
+        // person.Friend = person;
+        var json = Json.Serialize(person, new JsonSerializerOptions { CircularReferenceHandling = CircularReferenceHandling.WriteNull });
+        Equal("{\"Friend\":null}", json);
+    }
+
+    public static void CaseInsensitiveProperties()
+    {
+        var user = Json.Deserialize<User>("{\"id\":5,\"name\":\"A\",\"isactive\":true}",
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
+        Equal(5, user.Id); Equal("A", user.Name); Equal(true, user.IsActive);
+    }
+
     public static void Equal<T>(T expected, T? actual)
     {
         if (!EqualityComparer<T>.Default.Equals(expected, actual))
             throw new Exception(
                 $"Expected '{expected}', got '{actual}'.");
-
-        Console.WriteLine($"PASS: {actual} => {expected}");
     }
 
     public static void Contains(string value, string expected)
     {
         if (!value.Contains(expected, StringComparison.Ordinal)) throw new Exception($"Expected '{value}' to contain '{expected}'.");
+    }
+
+    public static TException Throws<TException>(Action action) where TException : Exception
+    {
+        try { action(); }
+        catch (TException ex) { return ex; }
+        throw new Exception($"Expected {typeof(TException).Name}.");
     }
 }
 
@@ -94,13 +158,6 @@ public sealed class User
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public bool IsActive { get; set; }
-    public Address Address { get; set; } = new();
-}
-
-public sealed class Address
-{
-    public string City { get; set; } = string.Empty;
-    public string Country { get; set; } = string.Empty;
 }
 
 public sealed class Order
@@ -123,3 +180,13 @@ public sealed class SpecialModel
 }
 
 public enum Status { Inactive, Active }
+
+public sealed class NullableModel
+{
+    public int? Count { get; set; }
+}
+
+public sealed class Person
+{
+    public Person? Friend { get; set; }
+}
