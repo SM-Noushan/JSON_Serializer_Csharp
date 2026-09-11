@@ -6,12 +6,13 @@ namespace JsonSerializer.libs;
 
 public static class Json
 {
-    public static string Serialize<T>(T value)
-        => Serialize((object?)value);
+    public static string Serialize<T>(T value, JsonSerializerOptions? options = null)
+        => Serialize((object?)value, options);
 
-    public static string Serialize(object? value)
+    public static string Serialize(object? value, JsonSerializerOptions? options = null)
     {
-        var jsonWriter = new JsonWriter();
+        options ??= new JsonSerializerOptions();
+        var jsonWriter = new JsonWriter(options);
         jsonWriter.WriteValue(value);
         return jsonWriter.ToString();
     }
@@ -19,6 +20,11 @@ public static class Json
     internal sealed class JsonWriter
     {
         private readonly StringBuilder _builder = new StringBuilder();
+        private readonly JsonSerializerOptions _options;
+        private int _depth;
+
+        public JsonWriter(JsonSerializerOptions options)
+            => _options = options;
 
         public override string ToString() => _builder.ToString();
 
@@ -26,50 +32,37 @@ public static class Json
         {
             if (value == null) { _builder.Append("null"); return; }
 
-            var type = value.GetType();
+            var type = Nullable.GetUnderlyingType(value.GetType()) ?? value.GetType();
 
-            if (value is double d && (double.IsNaN(d) || double.IsInfinity(d)))
-                throw new JsonException(
-                    "NaN/Infinity are not valid JSON numbers.");
-
-            if (value is float f && (float.IsNaN(f) || float.IsInfinity(f)))
-                throw new JsonException(
-                    "NaN/Infinity are not valid JSON numbers.");
             if (type == typeof(string)) { WriteString((string)value); return; }
             if (type == typeof(char)) { WriteString(value.ToString()!); return; }
             if (type == typeof(bool)) { _builder.Append((bool)value ? "true" : "false"); return; }
+            if (IsNumeric(type)) { WriteNumeric(value); return; }
 
-            _builder.Append(value switch
-            {
-                int json => json.ToString(CultureInfo.InvariantCulture),
-                long json => json.ToString(CultureInfo.InvariantCulture),
-                float json => json.ToString(CultureInfo.InvariantCulture),
-                double json => json.ToString(CultureInfo.InvariantCulture),
-                decimal json => json.ToString(CultureInfo.InvariantCulture),
-                bool json => json.ToString(),
-                _ => WriteObject(value),
-                // _ => throw new NotSupportedException($"Type '{type.Name}' is not supported for serialization.")
-            });
+            WriteObject(value);
         }
 
-        private string WriteObject(object value)
+        private void WriteObject(object value)
         {
             _builder.Append('{');
+            _depth++;
             var properties = value.GetType().GetProperties();
+
             for (int i = 0; i < properties.Length; i++)
             {
                 if (i > 0) _builder.Append(',');
-
-                var property = properties[i];
-                WriteString(property.Name);
-                _builder.Append(':');
-                WriteValue(property.GetValue(value));
+                WriteNewLineAndIndentIfNeeded();
+                WriteString(properties[i].Name);
+                _builder.Append(_options.WriteIndented ? ": " : ":");
+                WriteValue(properties[i].GetValue(value));
             }
+
+            _depth--;
+            if (properties.Length > 0) WriteNewLineAndIndentIfNeeded();
             _builder.Append('}');
-            return "";
         }
 
-        public void WriteString(string value)
+        private void WriteString(string value)
         {
             _builder.Append('"');
             foreach (var ch in value)
@@ -90,5 +83,37 @@ public static class Json
                 }
             _builder.Append('"');
         }
+
+        private void WriteNumeric(object value)
+        {
+            switch (value)
+            {
+                case byte v: _builder.Append(v); break;
+                case sbyte v: _builder.Append(v); break;
+                case short v: _builder.Append(v); break;
+                case ushort v: _builder.Append(v); break;
+                case int v: _builder.Append(v); break;
+                case uint v: _builder.Append(v); break;
+                case long v: _builder.Append(v); break;
+                case ulong v: _builder.Append(v); break;
+                case decimal d: _builder.Append(d.ToString(CultureInfo.InvariantCulture)); break;
+                case float f when float.IsFinite(f): _builder.Append(f.ToString("R", CultureInfo.InvariantCulture)); break;
+                case double d when double.IsFinite(d): _builder.Append(d.ToString("R", CultureInfo.InvariantCulture)); break;
+                case float: throw new JsonException("NaN/Infinity are not valid JSON numbers.");
+                case double: throw new JsonException("NaN/Infinity are not valid JSON numbers.");
+                default: throw new JsonException($"Unsupported numeric type '{value.GetType().FullName}'.");
+            }
+        }
+
+        private void WriteNewLineAndIndentIfNeeded()
+        {
+            if (!_options.WriteIndented) return;
+            _builder.AppendLine();
+            _builder.Append(' ', _depth * 2);
+        }
+
+        private static bool IsNumeric(Type type)
+            => Type.GetTypeCode(type) is TypeCode.Byte or TypeCode.SByte or TypeCode.Int16 or TypeCode.UInt16 or TypeCode.Int32 or TypeCode.UInt32 or TypeCode.Int64 or TypeCode.UInt64 or TypeCode.Single or TypeCode.Double or TypeCode.Decimal;
     }
+
 }

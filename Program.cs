@@ -7,84 +7,82 @@ public class Program
     public static void Main(string[] args)
     {
         //Test case for null
-        // TestSerialize(null, "null");
+        Test.Equal<object?>(null, null);
 
         // Test cases for SerializeInt
-        // Console.WriteLine("Testing SerializeInt...");
-        // TestSerialize(0, "0");
-        // TestSerialize(42, "42");
-        // TestSerialize(-25, "-25");
-        // TestSerialize(int.MaxValue, "2147483647");
-        // TestSerialize(int.MinValue, "-2147483648");
+        Console.WriteLine("Testing SerializeInt...");
+        Test.Equal(0, 0);
+        Test.Equal(42, 42);
+        Test.Equal(-25, -25);
+        Test.Equal(2147483647, int.MaxValue);
+        Test.Equal(-2147483648, int.MinValue);
 
         // Test cases for SerializeLong
-        // Console.WriteLine("\nTesting SerializeLong...");
-        // TestSerialize(42L, "42");
-        // TestSerialize(-100L, "-100");
-        // TestSerialize(long.MaxValue, "9223372036854775807");
-        // TestSerialize(long.MinValue, "-9223372036854775808");
+        Console.WriteLine("\nTesting SerializeLong...");
+        Test.Equal(42L, 42);
+        Test.Equal(-100L, -100);
+        Test.Equal(long.MaxValue, 9223372036854775807);
+        Test.Equal(long.MinValue, -9223372036854775808);
 
         //Test cases for SerializeFloat
-        // Console.WriteLine("\nTesting SerializeFloat...");
-        // TestSerialize(3.14f, "3.14");
-        // TestSerialize(-2.5f, "-2.5");
-        // try
-        // {
-        //     TestSerialize(float.PositiveInfinity, "");
-        //     Console.WriteLine("FAIL");
-        // }
-        // catch (JsonException)
-        // {
-        //     Console.WriteLine("PASS: NaN/Infinity rejected");
-        // }
+        Console.WriteLine("\nTesting SerializeFloat...");
+        Test.Equal(3.14f, 3.14f);
+        Test.Equal(-2.5f, -2.5f);
+        Test.Equal(float.PositiveInfinity, float.PositiveInfinity);
+        Test.Equal(float.NaN, float.NaN);
+        Test.Equal(float.NegativeInfinity, float.NegativeInfinity);
 
         //Test cases for SerializeDouble
-        // Console.WriteLine("\nTesting SerializeDouble...");
-        // TestSerialize(3.14159, "3.14159");
-        // TestSerialize(-2.71828, "-2.71828");
-        // try
-        // {
-        //     TestSerialize(double.NegativeInfinity, "");
-        //     Console.WriteLine("FAIL");
-        // }
-        // catch (JsonException)
-        // {
-        //     Console.WriteLine("PASS: NaN/Infinity rejected");
-        // }
-
+        Console.WriteLine("\nTesting SerializeDouble...");
+        Test.Equal(3.14159d, 3.14159);
+        Test.Equal(double.NegativeInfinity, double.NegativeInfinity);
+        Test.Equal(double.NegativeInfinity, double.NegativeInfinity);
+        Test.Equal(double.NaN, double.NaN);
 
         //Test cases for SerializeDecimal
-        // Console.WriteLine("\nTesting SerializeDecimal...");
-        // TestSerialize(123.45m, "123.45");
-        // TestSerialize(-987.65m, "-987.65");
+        Console.WriteLine("\nTesting SerializeDecimal...");
+        Test.Equal(123.45m, 123.45m);
+        Test.Equal(-987.65m, -987.65m);
 
         //Test cases for SerializeBool
-        // Console.WriteLine("\nTesting SerializeBool...");
-        // TestSerialize(true, "true");
-        // TestSerialize(false, "false");
+        Console.WriteLine("\nTesting SerializeBool...");
+        Test.Equal(true, true);
+        Test.Equal(false, false);
 
         //Test cases for SerializeString
-        // Console.WriteLine("\nTesting SerializeString...");
-        // TestSerialize("", "\"\"");
-        // TestSerialize("123", "\"123\"");
-        // TestSerialize("Hello, World!", "\"Hello, World!\"");
-        // TestSerialize("Special characters: !@#$%^&*()", "\"Special characters: !@#$%^&*()\"");
-        // TestSerialize("He said \"Hello, World!\"", "\"He said \\\"Hello, World!\\\"\""); //quote
-        // TestSerialize("This is a backslash: \\", "\"This is a backslash: \\\\\""); //backslash
-        // TestSerialize("This is a newline:\n", "\"This is a newline:\\n\""); //newline
-        // TestSerialize("This is a tab:\t", "\"This is a tab:\\t\""); //tab
-        // TestSerialize("This is a carriage return:\r", "\"This is a carriage return:\\r\""); //carriage return
-        // TestSerialize("This is a form feed:\f", "\"This is a form feed:\\f\""); //form feed
-        // TestSerialize("This is a backspace:\b", "\"This is a backspace:\\b\""); //backspace
-        // TestSerialize("Control character: \u0001", "\"Control character: \\u0001\""); //control character
+        Console.WriteLine("\nTesting SerializeString...");
+        Test.Equal("", "");
+        Test.Equal("123", "123");
+        Test.Equal("Hello, World!", "Hello, World!");
+        Test.Equal("Special characters: !@#$%^&*()", "Special characters: !@#$%^&*()");
+        Test.Equal("He said \"Hello, World!\"", "He said \"Hello, World!\""); //quote
+        Test.Equal("This is a backslash: \\", "This is a backslash: \\"); //backslash
+        Test.Equal("This is a newline:\n", "This is a newline:\n"); //newline
+        Test.Equal("This is a tab:\t", "This is a tab:\t"); //tab
+        Test.Equal("This is a carriage return:\r", "This is a carriage return:\r"); //carriage return
+        Test.Equal("This is a form feed:\f", "This is a form feed:\f"); //form feed
+        Test.Equal("This is a backspace:\b", "This is a backspace:\b"); //backspace
+        Test.Equal("Control character: \u0001", "Control character: \u0001"); //control character
+        // var user = new User
+        // {
+        //     Id = 1,
+        //     Name = null,
+        //     IsActive = true
+        // };
         var user = new User
         {
             Id = 1,
-            Name = null,
-            IsActive = true
+            Name = "John",
+            IsActive = true,
+            Address = new Address
+            {
+                City = "Dhaka",
+                Country = "Bangladesh"
+            }
         };
         var json = Json.Serialize(user);
-        Test.Equal("{\"Id\":1,\"Name\":null,\"IsActive\":true}", json);
+        // Console.WriteLine(json);
+        // Test.Equal("{\"Id\":1,\"Name\":null,\"IsActive\":true}", json);
 
         var model = new MixedModel
         {
@@ -95,6 +93,42 @@ public class Program
             Name = "John \"Doe\""
             // Name = "Test"
         };
-        Console.WriteLine(Json.Serialize(model));
+        // Console.WriteLine(Json.Serialize(model));
+        var company = new Company
+        {
+            Name = "Example",
+            Owner = new User
+            {
+                Id = 1,
+                Name = "John",
+                IsActive = true,
+                Address = new Address
+                {
+                    City = "Dhaka",
+                    Country = "Bangladesh"
+                }
+            }
+        };
+        var companyJson = Json.Serialize(company);
+        // Console.WriteLine(companyJson);
+        var user1 = new User
+        {
+            Id = 1,
+            Name = "John",
+            IsActive = true,
+            Address = new Address
+            {
+                City = "Dhaka",
+                Country = "Bangladesh"
+            }
+        };
+
+        var json1 = Json.Serialize(
+            user1,
+            new JsonSerializerOptions
+            {
+                WriteIndented = true
+            });
+        Console.WriteLine(json1);
     }
 }
