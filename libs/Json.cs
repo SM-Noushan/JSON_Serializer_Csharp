@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Globalization;
 using System.Text;
 using JSONSerializer.libs;
@@ -37,7 +38,15 @@ public static class Json
             if (type == typeof(string)) { WriteString((string)value); return; }
             if (type == typeof(char)) { WriteString(value.ToString()!); return; }
             if (type == typeof(bool)) { _builder.Append((bool)value ? "true" : "false"); return; }
+            if (type.IsEnum) { WriteString(value.ToString()!); return; }
+            if (type == typeof(DateTime)) { WriteString(((DateTime)value).ToString("O", CultureInfo.InvariantCulture)); return; }
+            if (type == typeof(DateTimeOffset)) { WriteString(((DateTimeOffset)value).ToString("O", CultureInfo.InvariantCulture)); return; }
+            if (type == typeof(Guid)) { WriteString(value.ToString()!); return; }
             if (IsNumeric(type)) { WriteNumeric(value); return; }
+
+            // Dictionaries must be checked before Enumerables because they are also Enumerables.Both must be checked before objects, because they are objects as well.
+            if (value is IDictionary dictionary) { WriteDictionary(dictionary); return; }
+            if (value is IEnumerable enumerable) { WriteEnumerable(enumerable); return; }
 
             WriteObject(value);
         }
@@ -59,6 +68,48 @@ public static class Json
 
             _depth--;
             if (properties.Length > 0) WriteNewLineAndIndentIfNeeded();
+            _builder.Append('}');
+        }
+
+        private void WriteEnumerable(IEnumerable enumerable)
+        {
+            _builder.Append('[');
+            _depth++;
+            var first = true;
+
+            foreach (var item in enumerable)
+            {
+                if (!first) _builder.Append(',');
+                first = false;
+                WriteNewLineAndIndentIfNeeded();
+                WriteValue(item);
+            }
+
+            _depth--;
+            if (!first) WriteNewLineAndIndentIfNeeded();
+            _builder.Append(']');
+        }
+
+        private void WriteDictionary(IDictionary dictionary)
+        {
+            _builder.Append('{');
+            _depth++;
+            var first = true;
+
+            foreach (DictionaryEntry entry in dictionary)
+            {
+                if (entry.Key is not string key)
+                    throw new JsonException("Dictionary keys must be strings for JSON object serialization.");
+                if (!first) _builder.Append(',');
+                first = false;
+                WriteNewLineAndIndentIfNeeded();
+                WriteString(key);
+                _builder.Append(_options.WriteIndented ? ": " : ":");
+                WriteValue(entry.Value);
+            }
+
+            _depth--;
+            if (!first) WriteNewLineAndIndentIfNeeded();
             _builder.Append('}');
         }
 
